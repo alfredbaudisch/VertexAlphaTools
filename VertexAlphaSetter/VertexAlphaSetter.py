@@ -46,8 +46,18 @@ class VIEW3D_PT_VertexAlphaSetter(bpy.types.Panel):
     
     def draw(self, context):
         layout = self.layout
+        
+        # Alpha setter section
+        layout.label(text="Set Vertex Alpha:")
         layout.prop(context.scene, 'alpha_value')
         layout.operator("object.set_vertex_alpha")
+        
+        # Separator
+        layout.separator()
+        
+        # View vertex alpha section
+        layout.label(text="View Vertex Alpha:")
+        layout.operator("view3d.display_vertex_alpha")
 
 def register():
     bpy.utils.register_class(SetVertexAlphaOperator)

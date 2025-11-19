@@ -1,21 +1,24 @@
 bl_info = {
-    "name": "Vertex Alpha Viewer",
+    "name": "Vertex Alpha Tools",
     "author": "Alfred R Baudisch",
-    "version": (1, 1, 2),
+    "version": (2, 0, 0),
     "blender": (3, 0, 0),
-    "location": "View3D > Object > Display Vertex Alpha",
-    "description": "Quickly display vertex alpha channel as grayscale",
-    "category": "Material",
+    "location": "View3D > Tool > Vertex Alpha Setter",
+    "description": "Set vertex alpha values and toggle vertex alpha visualization",
+    "category": "Vertex Paint",
 }
 
 import bpy
 from . import vertex_alpha_operator
+from . import VertexAlphaSetter
 
 def register():
     vertex_alpha_operator.register()
+    VertexAlphaSetter.register()
 
 def unregister():
     vertex_alpha_operator.unregister()
+    VertexAlphaSetter.unregister()
 
 if __name__ == "__main__":
     register()

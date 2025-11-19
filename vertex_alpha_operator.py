@@ -198,15 +198,7 @@ class VIEW3D_OT_display_vertex_alpha(Operator):
 
 def register():
     bpy.utils.register_class(VIEW3D_OT_display_vertex_alpha)
-    
-    # Add to Object menu
-    def menu_func(self, context):
-        self.layout.separator()
-        self.layout.operator(VIEW3D_OT_display_vertex_alpha.bl_idname)
-    
-    bpy.types.VIEW3D_MT_object.append(menu_func)
 
 
 def unregister():
     bpy.utils.unregister_class(VIEW3D_OT_display_vertex_alpha)
-    bpy.types.VIEW3D_MT_object.remove(menu_func)
