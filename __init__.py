@@ -1,10 +1,10 @@
 bl_info = {
     "name": "Vertex Alpha Tools",
-    "author": "Alfred R Baudisch",
-    "version": (2, 3, 3),
+    "author": "Alfred R. Baudisch and Matías Avilés Pollak",
+    "version": (1, 0, 0),
     "blender": (3, 0, 0),
     "location": "View3D > Tool > Vertex Alpha Tools",
-    "description": "Set vertex alpha values and toggle vertex alpha visualization",
+    "description": "Toggle vertex alpha visualization and set individual vertices' vertex colors to specific alpha values",
     "category": "Vertex Paint",
 }
 

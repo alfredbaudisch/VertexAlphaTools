@@ -5,7 +5,6 @@ import blf
 from mathutils import Vector
 from bpy_extras.view3d_utils import location_3d_to_region_2d
 
-# Store draw handler handles for all spaces
 _draw_handlers = []
 
 def draw_vertex_alpha_labels():
@@ -13,7 +12,7 @@ def draw_vertex_alpha_labels():
     context = bpy.context
     
     try:
-        # Check if we're in a 3D viewport
+        # In a 3D Viewport?
         if not hasattr(context, 'space_data') or not context.space_data:
             return
         if context.space_data.type != 'VIEW_3D':
@@ -52,7 +51,7 @@ def draw_vertex_alpha_labels():
     
     # Set up font
     font_id = 0
-    blf.size(font_id, 24)  # Much larger font size
+    blf.size(font_id, 24)
     blf.color(font_id, 1.0, 1.0, 1.0, 1.0)
     
     # Get world matrix
