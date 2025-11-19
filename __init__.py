@@ -4,7 +4,7 @@ bl_info = {
     "version": (1, 0, 0),
     "blender": (3, 0, 0),
     "location": "View3D > Tool > Vertex Alpha Tools",
-    "description": "Toggle vertex alpha visualization and set individual vertices' vertex colors to specific alpha values",
+    "description": "Toggle vertex alpha visualization and set individual vertex colors' alpha values",
     "category": "Vertex Paint",
 }
 
