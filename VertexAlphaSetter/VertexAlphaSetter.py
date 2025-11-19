@@ -39,7 +39,7 @@ class SetVertexAlphaOperator(bpy.types.Operator):
         return {'FINISHED'}
 
 class VIEW3D_PT_VertexAlphaSetter(bpy.types.Panel):
-    bl_label = "Vertex Alpha Setter"
+    bl_label = "Vertex Alpha Tools"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Tool"
@@ -51,13 +51,12 @@ class VIEW3D_PT_VertexAlphaSetter(bpy.types.Panel):
         layout.label(text="Set Vertex Alpha:")
         layout.prop(context.scene, 'alpha_value')
         layout.operator("object.set_vertex_alpha")
-        
-        # Separator
+
         layout.separator()
         
         # View vertex alpha section
-        layout.label(text="View Vertex Alpha:")
         layout.operator("view3d.display_vertex_alpha")
+        layout.operator("view3d.toggle_vertex_alpha_labels")
 
 def register():
     bpy.utils.register_class(SetVertexAlphaOperator)

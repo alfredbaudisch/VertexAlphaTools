@@ -24,19 +24,6 @@ def draw_vertex_alpha_labels():
         if not obj or obj.type != 'MESH':
             return
         
-        # Check if vertex alpha is active
-        is_showing_alpha = False
-        if "_vertex_alpha_active" in obj:
-            is_showing_alpha = bool(obj["_vertex_alpha_active"])
-        
-        # Also check material name as fallback
-        if not is_showing_alpha and obj.active_material:
-            if obj.active_material.name.endswith("_VertexAlpha"):
-                is_showing_alpha = True
-        
-        if not is_showing_alpha:
-            return
-        
         mesh = obj.data
         
         # Check if mesh has vertex colors
@@ -144,7 +131,7 @@ def draw_vertex_alpha_labels():
 class VIEW3D_OT_display_vertex_alpha(Operator):
     """Toggle between displaying vertex alpha channel and original material"""
     bl_idname = "view3d.display_vertex_alpha"
-    bl_label = "Display Vertex Alpha"
+    bl_label = "Toggle Vertex Alpha Viewer"
     bl_options = {'REGISTER', 'UNDO'}
     
     def execute(self, context):
@@ -253,14 +240,6 @@ class VIEW3D_OT_display_vertex_alpha(Operator):
             if "_original_material_name" in obj:
                 del obj["_original_material_name"]
             
-            # Unregister draw handlers
-            for handler in _draw_handlers:
-                try:
-                    bpy.types.SpaceView3D.draw_handler_remove(handler, 'WINDOW')
-                except:
-                    pass
-            _draw_handlers.clear()
-            
             return {'FINISHED'}
         
         # Check if mesh has vertex colors
@@ -341,8 +320,36 @@ class VIEW3D_OT_display_vertex_alpha(Operator):
         if original_mat_name:
             obj["_original_material_name"] = original_mat_name
         
-        # Register draw handler for text labels in all VIEW_3D spaces
-        if not _draw_handlers:
+        self.report({'INFO'}, f"Displaying vertex alpha (attribute: {color_attr.name})")
+        return {'FINISHED'}
+
+
+class VIEW3D_OT_toggle_vertex_alpha_labels(Operator):
+    """Toggle display of vertex alpha values as text labels"""
+    bl_idname = "view3d.toggle_vertex_alpha_labels"
+    bl_label = "Toggle Vertex Alpha Labels"
+    bl_options = {'REGISTER'}
+    
+    def execute(self, context):
+        global _draw_handlers
+        
+        # Check if handlers are currently active
+        if _draw_handlers:
+            # Remove all handlers
+            for handler in _draw_handlers:
+                try:
+                    bpy.types.SpaceView3D.draw_handler_remove(handler, 'WINDOW')
+                except:
+                    pass
+            _draw_handlers.clear()
+            
+            # Request viewport redraw to remove labels
+            for area in context.screen.areas:
+                if area.type == 'VIEW_3D':
+                    area.tag_redraw()
+            
+            self.report({'INFO'}, "Vertex alpha labels hidden")
+        else:
             # Add handler
             handler = bpy.types.SpaceView3D.draw_handler_add(
                 draw_vertex_alpha_labels,
@@ -356,13 +363,15 @@ class VIEW3D_OT_display_vertex_alpha(Operator):
             for area in context.screen.areas:
                 if area.type == 'VIEW_3D':
                     area.tag_redraw()
+            
+            self.report({'INFO'}, "Vertex alpha labels shown")
         
-        self.report({'INFO'}, f"Displaying vertex alpha (attribute: {color_attr.name})")
         return {'FINISHED'}
 
 
 def register():
     bpy.utils.register_class(VIEW3D_OT_display_vertex_alpha)
+    bpy.utils.register_class(VIEW3D_OT_toggle_vertex_alpha_labels)
 
 
 def unregister():
@@ -375,4 +384,5 @@ def unregister():
             pass
     _draw_handlers.clear()
     
+    bpy.utils.unregister_class(VIEW3D_OT_toggle_vertex_alpha_labels)
     bpy.utils.unregister_class(VIEW3D_OT_display_vertex_alpha)
