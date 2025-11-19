@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Vertex Alpha Tools",
     "author": "Alfred R Baudisch",
-    "version": (2, 0, 0),
+    "version": (2, 3, 0),
     "blender": (3, 0, 0),
     "location": "View3D > Tool > Vertex Alpha Setter",
     "description": "Set vertex alpha values and toggle vertex alpha visualization",

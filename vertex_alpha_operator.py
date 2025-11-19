@@ -1,6 +1,145 @@
 import bpy
 from bpy.props import StringProperty
 from bpy.types import Operator, Material
+import blf
+from mathutils import Vector
+from bpy_extras.view3d_utils import location_3d_to_region_2d
+
+# Store draw handler handles for all spaces
+_draw_handlers = []
+
+def draw_vertex_alpha_labels():
+    """Draw vertex alpha values as text labels in the 3D viewport"""
+    context = bpy.context
+    
+    try:
+        # Check if we're in a 3D viewport
+        if not hasattr(context, 'space_data') or not context.space_data:
+            return
+        if context.space_data.type != 'VIEW_3D':
+            return
+        
+        obj = context.active_object
+        
+        if not obj or obj.type != 'MESH':
+            return
+        
+        # Check if vertex alpha is active
+        is_showing_alpha = False
+        if "_vertex_alpha_active" in obj:
+            is_showing_alpha = bool(obj["_vertex_alpha_active"])
+        
+        # Also check material name as fallback
+        if not is_showing_alpha and obj.active_material:
+            if obj.active_material.name.endswith("_VertexAlpha"):
+                is_showing_alpha = True
+        
+        if not is_showing_alpha:
+            return
+        
+        mesh = obj.data
+        
+        # Check if mesh has vertex colors
+        if not mesh.color_attributes:
+            return
+        
+        # Find the first color attribute
+        color_attr = None
+        for attr in mesh.color_attributes:
+            if attr.data_type == 'BYTE_COLOR' or attr.data_type == 'FLOAT_COLOR':
+                color_attr = attr
+                break
+        
+        if not color_attr:
+            return
+        
+        # Get the viewport region
+        region = context.region
+        region3d = context.space_data.region_3d
+        
+        if not region or not region3d:
+            return
+    except Exception as e:
+        # Silently fail if context is not available
+        return
+    
+    # Set up font
+    font_id = 0
+    blf.size(font_id, 24)  # Much larger font size
+    blf.color(font_id, 1.0, 1.0, 1.0, 1.0)
+    
+    # Get world matrix
+    matrix_world = obj.matrix_world
+    
+    # Get vertex positions and alpha values
+    vertices = mesh.vertices
+    color_data = color_attr.data
+    
+    # Handle different attribute domains
+    is_per_vertex = color_attr.domain == 'POINT'
+    
+    # For per-corner attributes, build a mapping of vertex to alpha values
+    vertex_alpha_map = {}
+    if not is_per_vertex:
+        # Build mapping: vertex_index -> list of alpha values
+        for poly in mesh.polygons:
+            for loop_idx in poly.loop_indices:
+                vert_idx = mesh.loops[loop_idx].vertex_index
+                # In Blender 4.x, BYTE_COLOR values are already normalized to 0.0-1.0
+                alpha_val = color_data[loop_idx].color[3]
+                
+                if vert_idx not in vertex_alpha_map:
+                    vertex_alpha_map[vert_idx] = []
+                vertex_alpha_map[vert_idx].append(alpha_val)
+    
+    # Draw text for each vertex
+    for i, vert in enumerate(vertices):
+        # Get world position
+        world_pos = matrix_world @ vert.co
+        
+        # Project to 2D screen coordinates
+        try:
+            screen_pos = location_3d_to_region_2d(region, region3d, world_pos, default=None)
+        except:
+            continue
+        
+        # Skip if vertex is behind camera
+        if screen_pos is None:
+            continue
+        
+        # Get alpha value based on domain
+        try:
+            if is_per_vertex:
+                # Per-vertex: direct access
+                # In Blender 4.x, both BYTE_COLOR and FLOAT_COLOR are normalized to 0.0-1.0
+                color_val = color_data[i].color
+                if len(color_val) >= 4:
+                    alpha = color_val[3]
+                else:
+                    alpha = 1.0  # Default if no alpha channel
+            else:
+                # Per-corner: get average alpha from all corners of this vertex
+                if i in vertex_alpha_map and len(vertex_alpha_map[i]) > 0:
+                    alpha = sum(vertex_alpha_map[i]) / len(vertex_alpha_map[i])
+                else:
+                    continue
+        except Exception as e:
+            # If we can't read alpha, skip this vertex
+            continue
+        
+        # Format alpha value (2 decimal places)
+        alpha_text = f"{alpha:.2f}"
+        
+        # Draw text with shadow for visibility
+        # Draw shadow first (offset)
+        blf.position(font_id, screen_pos.x + 6, screen_pos.y + 4, 0)
+        blf.color(font_id, 0.0, 0.0, 0.0, 1.0)
+        blf.draw(font_id, alpha_text)
+        
+        # Draw text on top
+        blf.position(font_id, screen_pos.x + 5, screen_pos.y + 5, 0)
+        blf.color(font_id, 1.0, 1.0, 1.0, 1.0)
+        blf.draw(font_id, alpha_text)
 
 class VIEW3D_OT_display_vertex_alpha(Operator):
     """Toggle between displaying vertex alpha channel and original material"""
@@ -9,6 +148,8 @@ class VIEW3D_OT_display_vertex_alpha(Operator):
     bl_options = {'REGISTER', 'UNDO'}
     
     def execute(self, context):
+        global _draw_handlers
+        
         obj = context.active_object
         
         if not obj or obj.type != 'MESH':
@@ -112,6 +253,14 @@ class VIEW3D_OT_display_vertex_alpha(Operator):
             if "_original_material_name" in obj:
                 del obj["_original_material_name"]
             
+            # Unregister draw handlers
+            for handler in _draw_handlers:
+                try:
+                    bpy.types.SpaceView3D.draw_handler_remove(handler, 'WINDOW')
+                except:
+                    pass
+            _draw_handlers.clear()
+            
             return {'FINISHED'}
         
         # Check if mesh has vertex colors
@@ -192,6 +341,22 @@ class VIEW3D_OT_display_vertex_alpha(Operator):
         if original_mat_name:
             obj["_original_material_name"] = original_mat_name
         
+        # Register draw handler for text labels in all VIEW_3D spaces
+        if not _draw_handlers:
+            # Add handler
+            handler = bpy.types.SpaceView3D.draw_handler_add(
+                draw_vertex_alpha_labels,
+                (),
+                'WINDOW',
+                'POST_PIXEL'
+            )
+            _draw_handlers.append(handler)
+            
+            # Request viewport redraw to show labels
+            for area in context.screen.areas:
+                if area.type == 'VIEW_3D':
+                    area.tag_redraw()
+        
         self.report({'INFO'}, f"Displaying vertex alpha (attribute: {color_attr.name})")
         return {'FINISHED'}
 
@@ -201,4 +366,13 @@ def register():
 
 
 def unregister():
+    # Unregister all draw handlers
+    global _draw_handlers
+    for handler in _draw_handlers:
+        try:
+            bpy.types.SpaceView3D.draw_handler_remove(handler, 'WINDOW')
+        except:
+            pass
+    _draw_handlers.clear()
+    
     bpy.utils.unregister_class(VIEW3D_OT_display_vertex_alpha)
