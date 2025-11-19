@@ -24,12 +24,12 @@ def draw_vertex_alpha_labels():
             return
         
         mesh = obj.data
-        
-        # Check if mesh has vertex colors
+            
+        # Does the mesh have vertex colors?
         if not mesh.color_attributes:
             return
         
-        # Find the first color attribute
+        # Get the first color attribute
         color_attr = None
         for attr in mesh.color_attributes:
             if attr.data_type == 'BYTE_COLOR' or attr.data_type == 'FLOAT_COLOR':
@@ -53,11 +53,10 @@ def draw_vertex_alpha_labels():
     font_id = 0
     blf.size(font_id, 24)
     blf.color(font_id, 1.0, 1.0, 1.0, 1.0)
-    
-    # Get world matrix
+
     matrix_world = obj.matrix_world
     
-    # Get vertex positions and alpha values
+    # Vertex positions and alpha values
     vertices = mesh.vertices
     color_data = color_attr.data
     
